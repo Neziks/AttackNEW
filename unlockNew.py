@@ -46,18 +46,21 @@ def optimize_network():
         'net.ipv4.tcp_keepalive_time': '1200',
         'net.ipv4.tcp_congestion_control': 'bbr',
         'net.ipv4.tcp_fastopen': '3',
+        'net.ipv4.tcp_max_syn_backlog': '2048',
+        'vm.swappiness': '10'
     }
     
     for key, value in settings.items():
         run_command(f'sysctl -w {key}="{value}"')
 
 def clear_iptables():
-    """Очистка iptables."""
+    """Очистка iptables и отключение фаервола."""
     commands = [
         'iptables -F',
         'iptables -P INPUT ACCEPT',
         'iptables -P OUTPUT ACCEPT',
         'iptables -P FORWARD ACCEPT',
+        'ufw disable'
     ]
     
     for cmd in commands:
@@ -101,6 +104,10 @@ def disable_telemetry():
     for cmd in commands:
         run_command(cmd)
 
+def increase_file_limits():
+    """Увеличение лимитов по открытым файлам."""
+    run_command("ulimit -n 100000")
+
 def find_best_server():
     """Поиск ближайшего и самого быстрого сервера для интернет-соединения."""
     st = speedtest.Speedtest()
@@ -119,6 +126,7 @@ def apply_all():
     disable_services()
     disable_snap()
     disable_telemetry()
+    increase_file_limits()
     
     find_best_server()
     
