@@ -5,32 +5,35 @@ import logging
 import speedtest
 
 def setup_logging():
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", force=True)
+    logging.basicConfig(
+        level=logging.INFO, 
+        format="%(asctime)s - %(levelname)s - %(message)s"
+    )
 
 def run_command(command: str):
     """Выполнение команды с обработкой ошибок."""
     try:
-        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(
+            command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
         if result.stdout.strip():
             logging.info(f"✅ {command}: {result.stdout.strip()}")
         if result.stderr.strip():
             logging.warning(f"⚠️ Ошибка при выполнении {command}: {result.stderr.strip()}")
     except subprocess.CalledProcessError as e:
-        logging.warning(f"⚠️ Ошибка при выполнении {command}: {e.stderr.strip()}")
+        logging.error(f"❌ Ошибка при выполнении {command}: {e.stderr.strip()}")
 
 def set_limits():
     """Снятие системных лимитов."""
     limits = {
-        resource.RLIMIT_NOFILE: 1000000,
-        resource.RLIMIT_NPROC: resource.RLIM_INFINITY,
+        resource.RLIMIT_NOFILE: (1000000, 1000000),
+        resource.RLIMIT_NPROC: (resource.RLIM_INFINITY, resource.RLIM_INFINITY),
     }
     
     for limit, value in limits.items():
         try:
-            soft, hard = resource.getrlimit(limit)
-            new_limit = min(hard, value)
-            resource.setrlimit(limit, (new_limit, new_limit))
-            logging.info(f"✅ Лимит {limit} установлен на {new_limit}")
+            resource.setrlimit(limit, value)
+            logging.info(f"✅ Лимит {limit} установлен на {value}")
         except ValueError as e:
             logging.warning(f"⚠️ Не удалось изменить лимит {limit}: {e}")
 
@@ -53,16 +56,16 @@ def optimize_network():
     }
     
     for key, value in settings.items():
-        run_command(f'sudo sysctl -w {key}="{value}"')
+        run_command(f'sysctl -w {key}="{value}"')
 
 def clear_iptables():
     """Очистка iptables и отключение фаервола."""
     commands = [
-        'sudo iptables -F',
-        'sudo iptables -P INPUT ACCEPT',
-        'sudo iptables -P OUTPUT ACCEPT',
-        'sudo iptables -P FORWARD ACCEPT',
-        'sudo ufw disable'
+        'iptables -F',
+        'iptables -P INPUT ACCEPT',
+        'iptables -P OUTPUT ACCEPT',
+        'iptables -P FORWARD ACCEPT',
+        'ufw disable'
     ]
     
     for cmd in commands:
@@ -73,16 +76,16 @@ def disable_services():
     services = ["snapd", "bluetooth", "cups", "ModemManager", "whoopsie"]
     
     for service in services:
-        run_command(f'sudo systemctl stop {service}')
-        run_command(f'sudo systemctl disable {service}')
+        run_command(f'systemctl stop {service}')
+        run_command(f'systemctl disable {service}')
 
 def disable_snap():
     """Отключение snap."""
     commands = [
-        'sudo systemctl stop snapd',
-        'sudo systemctl disable snapd',
-        'sudo apt-get purge snapd -y',
-        'sudo rm -rf /snap /var/snap /var/lib/snapd',
+        'systemctl stop snapd',
+        'systemctl disable snapd',
+        'apt-get purge snapd -y',
+        'rm -rf /snap /var/snap /var/lib/snapd'
     ]
     
     for cmd in commands:
@@ -91,14 +94,12 @@ def disable_snap():
 def disable_telemetry():
     """Отключение телеметрии."""
     commands = [
-        'sudo systemctl stop apport',
-        'sudo systemctl disable apport',
-        'sudo systemctl stop systemd-telemetry',
-        'sudo systemctl disable systemd-telemetry',
-        'sudo sysctl -w kernel.dmesg_restrict=1',
-        'sudo apt-get remove --purge ubuntu-report popularity-contest apport whoopsie -y',
-        'sudo apt-get autoremove -y',
-        'sudo apt-get clean'
+        'systemctl stop apport',
+        'systemctl disable apport',
+        'sysctl -w kernel.dmesg_restrict=1',
+        'apt-get remove --purge ubuntu-report popularity-contest apport whoopsie -y',
+        'apt-get autoremove -y',
+        'apt-get clean'
     ]
     
     for cmd in commands:
