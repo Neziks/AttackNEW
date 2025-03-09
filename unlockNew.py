@@ -1,8 +1,15 @@
 import os
+import sys
 import resource
 import subprocess
 import logging
 import speedtest
+
+def check_root():
+    """Проверка, запущен ли скрипт от root."""
+    if os.geteuid() != 0:
+        print("🔴 Этот скрипт требует root-доступа. Перезапускаем с sudo...")
+        os.execvp("sudo", ["sudo", sys.executable] + sys.argv)
 
 def setup_logging():
     logging.basicConfig(
@@ -11,10 +18,11 @@ def setup_logging():
     )
 
 def run_command(command: str):
-    """Выполнение команды с обработкой ошибок."""
+    """Выполнение команды с обработкой ошибок, добавление sudo для root-доступа."""
+    full_command = f"sudo {command}"  # Добавляем sudo ко всем командам
     try:
         result = subprocess.run(
-            command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            full_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         if result.stdout.strip():
             logging.info(f"✅ {command}: {result.stdout.strip()}")
@@ -23,8 +31,38 @@ def run_command(command: str):
     except subprocess.CalledProcessError as e:
         logging.error(f"❌ Ошибка при выполнении {command}: {e.stderr.strip()}")
 
+def update_system():
+    """Обновление системы и установок пакетов."""
+    logging.info("🔄 Обновление системы и пакетов...")
+    run_command("apt-get update -y")  # Обновление списка пакетов
+    run_command("apt-get upgrade -y")  # Обновление установленных пакетов
+    run_command("apt-get dist-upgrade -y")  # Дистрибутивное обновление
+    run_command("apt-get autoremove -y")  # Удаление неиспользуемых пакетов
+    run_command("apt-get clean")  # Очистка кэша пакетов
+
+def install_required_packages():
+    """Установка необходимых пакетов."""
+    packages = [
+        "python3",  # Python 3
+        "python3-pip",  # pip для Python
+        "perl",  # Perl
+        "openjdk-11-jdk",  # Java 11
+        "git",  # Git
+        "curl",  # Curl
+        "vim",  # Vim редактор
+        "build-essential",  # Компиляторы и инструменты
+        "htop",  # Мониторинг системы
+        "net-tools",  # Инструменты для сетевого администрирования
+        "ufw",  # Uncomplicated Firewall
+        "iptables-persistent",  # Постоянные правила iptables
+        "wget"  # Wget для скачивания файлов
+    ]
+    
+    for package in packages:
+        run_command(f"apt-get install -y {package}")
+
 def set_limits():
-    """Снятие системных лимитов."""
+    """Снятие системных лимитов для файлов и процессов."""
     limits = {
         resource.RLIMIT_NOFILE: (1000000, 1000000),
         resource.RLIMIT_NPROC: (resource.RLIM_INFINITY, resource.RLIM_INFINITY),
@@ -122,8 +160,12 @@ def find_best_server():
         return None
 
 def apply_all():
+    check_root()  # Проверка root-доступа
     setup_logging()
     logging.info("⚙️ Начало оптимизации системы...")
+    
+    update_system()  # Обновление пакетов системы
+    install_required_packages()  # Установка необходимых пакетов
     
     set_limits()
     optimize_network()
