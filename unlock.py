@@ -26,25 +26,6 @@ def run_command(command):
     except subprocess.TimeoutExpired as e:
         logging.error(f"❌ Таймаут {command}: {e}", exc_info=True)
 
-def update_system():
-    """Обновление системы."""
-    logging.info("🔄 Обновление системы...")
-    for cmd in [["apt-get", "update", "-y"], ["apt-get", "upgrade", "-y"], ["apt-get", "dist-upgrade", "-y"], 
-                ["apt-get", "autoremove", "-y"], ["apt-get", "clean"]]:
-        run_command(cmd)
-
-def install_required_packages():
-    """Установка необходимых пакетов."""
-    packages = ["python3", "python3-pip", "perl", "openjdk-11-jdk", "build-essential"]
-    run_command(["apt-get", "install", "-y"] + packages)
-
-def remove_tracking_packages():
-    """Удаление пакетов, которые могут следить за пользователем."""
-    tracking_packages = ["zeitgeist", "tracker", "ubuntu-report", "popularity-contest", "apport", "whoopsie"]
-    run_command(["apt-get", "remove", "--purge", "-y"] + tracking_packages)
-    run_command(["apt-get", "autoremove", "-y"])
-    run_command(["apt-get", "clean"])
-
 def set_limits():
     """Снятие системных лимитов."""
     limits = {
@@ -98,9 +79,6 @@ def disable_services():
 def apply_all():
     setup_logging()
     logging.info("⚙️ Запуск оптимизации...")
-    update_system()
-    install_required_packages()
-    remove_tracking_packages()
     set_limits()
     optimize_network()
     clear_iptables()
