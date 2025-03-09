@@ -5,13 +5,16 @@ import logging
 import speedtest
 
 def setup_logging():
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", force=True)
 
 def run_command(command: str):
     """Выполнение команды с обработкой ошибок."""
     try:
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        logging.info(f"✅ {command}: {result.stdout.strip()}")
+        if result.stdout.strip():
+            logging.info(f"✅ {command}: {result.stdout.strip()}")
+        if result.stderr.strip():
+            logging.warning(f"⚠️ Ошибка при выполнении {command}: {result.stderr.strip()}")
     except subprocess.CalledProcessError as e:
         logging.warning(f"⚠️ Ошибка при выполнении {command}: {e.stderr.strip()}")
 
@@ -20,7 +23,6 @@ def set_limits():
     limits = {
         resource.RLIMIT_NOFILE: 1000000,
         resource.RLIMIT_NPROC: resource.RLIM_INFINITY,
-        resource.RLIMIT_AS: resource.RLIM_INFINITY,
     }
     
     for limit, value in limits.items():
@@ -31,12 +33,6 @@ def set_limits():
             logging.info(f"✅ Лимит {limit} установлен на {new_limit}")
         except ValueError as e:
             logging.warning(f"⚠️ Не удалось изменить лимит {limit}: {e}")
-
-def grant_full_permissions():
-    """Выдача всем пользователям полного доступа."""
-    run_command("chmod -R 777 /")  # Полные права на все файлы
-    run_command("setfacl -R -m u::rwx,g::rwx,o::rwx /")  # Установка ACL для всех
-    logging.info("✅ Все пользователи теперь имеют полный доступ ко всем файлам.")
 
 def optimize_network():
     """Оптимизация сетевых настроек."""
@@ -57,16 +53,16 @@ def optimize_network():
     }
     
     for key, value in settings.items():
-        run_command(f'sysctl -w {key}="{value}"')
+        run_command(f'sudo sysctl -w {key}="{value}"')
 
 def clear_iptables():
     """Очистка iptables и отключение фаервола."""
     commands = [
-        'iptables -F',
-        'iptables -P INPUT ACCEPT',
-        'iptables -P OUTPUT ACCEPT',
-        'iptables -P FORWARD ACCEPT',
-        'ufw disable'
+        'sudo iptables -F',
+        'sudo iptables -P INPUT ACCEPT',
+        'sudo iptables -P OUTPUT ACCEPT',
+        'sudo iptables -P FORWARD ACCEPT',
+        'sudo ufw disable'
     ]
     
     for cmd in commands:
@@ -74,37 +70,35 @@ def clear_iptables():
 
 def disable_services():
     """Отключение ненужных сервисов."""
-    services = [
-        "motd-news", "snapd", "bluetooth", "avahi-daemon", "cups", "ModemManager", "whoopsie"
-    ]
+    services = ["snapd", "bluetooth", "cups", "ModemManager", "whoopsie"]
     
     for service in services:
-        run_command(f'systemctl stop {service}')
-        run_command(f'systemctl disable {service}')
+        run_command(f'sudo systemctl stop {service}')
+        run_command(f'sudo systemctl disable {service}')
 
 def disable_snap():
     """Отключение snap."""
     commands = [
-        'systemctl stop snapd',
-        'systemctl disable snapd',
-        'apt-get purge snapd -y',
-        'rm -rf /snap /var/snap /var/lib/snapd',
+        'sudo systemctl stop snapd',
+        'sudo systemctl disable snapd',
+        'sudo apt-get purge snapd -y',
+        'sudo rm -rf /snap /var/snap /var/lib/snapd',
     ]
     
     for cmd in commands:
         run_command(cmd)
 
 def disable_telemetry():
-    """Отключение телеметрии и удаление ненужных пакетов."""
+    """Отключение телеметрии."""
     commands = [
-        'systemctl stop apport',
-        'systemctl disable apport',
-        'systemctl stop systemd-telemetry',
-        'systemctl disable systemd-telemetry',
-        'sysctl -w kernel.dmesg_restrict=1',
-        'apt-get remove --purge ubuntu-report popularity-contest apport whoopsie -y',
-        'apt-get autoremove -y',
-        'apt-get clean'
+        'sudo systemctl stop apport',
+        'sudo systemctl disable apport',
+        'sudo systemctl stop systemd-telemetry',
+        'sudo systemctl disable systemd-telemetry',
+        'sudo sysctl -w kernel.dmesg_restrict=1',
+        'sudo apt-get remove --purge ubuntu-report popularity-contest apport whoopsie -y',
+        'sudo apt-get autoremove -y',
+        'sudo apt-get clean'
     ]
     
     for cmd in commands:
@@ -116,18 +110,21 @@ def increase_file_limits():
 
 def find_best_server():
     """Поиск ближайшего и самого быстрого сервера для интернет-соединения."""
-    st = speedtest.Speedtest()
-    st.get_best_server()
-    best_server = st.results.server
-    logging.info(f"🌍 Лучший сервер: {best_server['sponsor']} ({best_server['name']}, {best_server['country']})")
-    return best_server
+    try:
+        st = speedtest.Speedtest()
+        st.get_best_server()
+        best_server = st.results.server
+        logging.info(f"🌍 Лучший сервер: {best_server['sponsor']} ({best_server['name']}, {best_server['country']})")
+        return best_server
+    except Exception as e:
+        logging.warning(f"⚠️ Ошибка поиска сервера Speedtest: {e}")
+        return None
 
 def apply_all():
     setup_logging()
     logging.info("⚙️ Начало оптимизации системы...")
     
     set_limits()
-    grant_full_permissions()
     optimize_network()
     clear_iptables()
     disable_services()
