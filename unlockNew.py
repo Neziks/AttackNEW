@@ -1,28 +1,22 @@
 import os
-import sys
 import resource
 import subprocess
 import logging
 import speedtest
 
-def check_root():
-    """Проверка, запущен ли скрипт от root."""
-    if os.geteuid() != 0:
-        print("🔴 Этот скрипт требует root-доступа. Перезапускаем с sudo...")
-        os.execvp("sudo", ["sudo", sys.executable] + sys.argv)
-
 def setup_logging():
+    """Настройка логирования."""
     logging.basicConfig(
         level=logging.INFO, 
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
 def run_command(command: str):
-    """Выполнение команды с обработкой ошибок, добавление sudo для root-доступа."""
+    """Выполнение команды с обработкой ошибок и флагом sudo."""
     full_command = f"sudo {command}"  # Добавляем sudo ко всем командам
     try:
         result = subprocess.run(
-            full_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            full_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600
         )
         if result.stdout.strip():
             logging.info(f"✅ {command}: {result.stdout.strip()}")
@@ -30,9 +24,11 @@ def run_command(command: str):
             logging.warning(f"⚠️ Ошибка при выполнении {command}: {result.stderr.strip()}")
     except subprocess.CalledProcessError as e:
         logging.error(f"❌ Ошибка при выполнении {command}: {e.stderr.strip()}")
+    except subprocess.TimeoutExpired as e:
+        logging.error(f"❌ Время выполнения команды {command} истекло: {e}")
 
 def update_system():
-    """Обновление системы и установок пакетов."""
+    """Обновление системы и пакетов."""
     logging.info("🔄 Обновление системы и пакетов...")
     run_command("apt-get update -y")  # Обновление списка пакетов
     run_command("apt-get upgrade -y")  # Обновление установленных пакетов
@@ -42,27 +38,12 @@ def update_system():
 
 def install_required_packages():
     """Установка необходимых пакетов."""
-    packages = [
-        "python3",  # Python 3
-        "python3-pip",  # pip для Python
-        "perl",  # Perl
-        "openjdk-11-jdk",  # Java 11
-        "git",  # Git
-        "curl",  # Curl
-        "vim",  # Vim редактор
-        "build-essential",  # Компиляторы и инструменты
-        "htop",  # Мониторинг системы
-        "net-tools",  # Инструменты для сетевого администрирования
-        "ufw",  # Uncomplicated Firewall
-        "iptables-persistent",  # Постоянные правила iptables
-        "wget"  # Wget для скачивания файлов
-    ]
-    
+    packages = ["python3", "python3-pip", "perl", "openjdk-11-jdk", "build-essential"]
     for package in packages:
         run_command(f"apt-get install -y {package}")
 
 def set_limits():
-    """Снятие системных лимитов для файлов и процессов."""
+    """Снятие системных лимитов."""
     limits = {
         resource.RLIMIT_NOFILE: (1000000, 1000000),
         resource.RLIMIT_NPROC: (resource.RLIM_INFINITY, resource.RLIM_INFINITY),
@@ -160,7 +141,6 @@ def find_best_server():
         return None
 
 def apply_all():
-    check_root()  # Проверка root-доступа
     setup_logging()
     logging.info("⚙️ Начало оптимизации системы...")
     
