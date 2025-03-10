@@ -2,9 +2,8 @@ import os
 import resource
 import subprocess
 import logging
-import speedtest
 import sys
-import importlib
+import importlib.util
 
 def setup_logging():
     """Настройка логирования."""
@@ -13,16 +12,17 @@ def setup_logging():
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
-def ensure_imports():
-    """Гарантированная установка необходимых модулей."""
-    required_modules = ["os", "resource", "subprocess", "logging", "speedtest"]
-    for module in required_modules:
-        try:
-            importlib.import_module(module)
-            logging.info(f"✅ Модуль {module} уже установлен")
-        except ImportError:
-            logging.warning(f"⚠️ Устанавливаю {module}...")
-            subprocess.run([sys.executable, "-m", "pip", "install", module], check=True)
+def install_and_import(module_name):
+    """Проверяет наличие модуля и устанавливает его при необходимости."""
+    if importlib.util.find_spec(module_name) is None:
+        logging.warning(f"⚠️ Устанавливаю {module_name}...")
+        subprocess.run([sys.executable, "-m", "pip", "install", module_name], check=True)
+    else:
+        logging.info(f"✅ Модуль {module_name} уже установлен")
+
+# Проверяем и устанавливаем модули
+install_and_import("speedtest")
+import speedtest
 
 def run_command(command):
     """Безопасное выполнение команды."""
@@ -51,10 +51,7 @@ def set_limits():
     """Снятие системных лимитов."""
     limits = {
         resource.RLIMIT_NOFILE: (1000000, 1000000),
-        resource.RLIMIT_NPROC: (resource.RLIM_INFINITY, resource.RLIM_INFINITY),
-        resource.RLIMIT_MEMLOCK: (resource.RLIM_INFINITY, resource.RLIM_INFINITY),
-        resource.RLIMIT_AS: (resource.RLIM_INFINITY, resource.RLIM_INFINITY),
-        resource.RLIMIT_CPU: (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
+        resource.RLIMIT_NPROC: (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
     }
     
     for limit, value in limits.items():
@@ -80,9 +77,7 @@ def optimize_network():
         "net.ipv4.tcp_congestion_control": "bbr",
         "net.ipv4.tcp_fastopen": "3",
         "net.ipv4.tcp_max_syn_backlog": "4096",
-        "vm.swappiness": "1",
-        "vm.overcommit_memory": "1",
-        "kernel.pid_max": "4194304"
+        "vm.swappiness": "1"
     }
     for key, value in settings.items():
         current_value = get_current_sysctl_value(key)
@@ -108,7 +103,6 @@ def disable_services():
 
 def apply_all():
     setup_logging()
-    ensure_imports()
     logging.info("⚙️ Запуск оптимизации...")
     set_limits()
     optimize_network()
