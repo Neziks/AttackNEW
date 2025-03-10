@@ -31,6 +31,9 @@ def set_limits():
     limits = {
         resource.RLIMIT_NOFILE: (1000000, 1000000),
         resource.RLIMIT_NPROC: (resource.RLIM_INFINITY, resource.RLIM_INFINITY),
+        resource.RLIMIT_MEMLOCK: (resource.RLIM_INFINITY, resource.RLIM_INFINITY),
+        resource.RLIMIT_AS: (resource.RLIM_INFINITY, resource.RLIM_INFINITY),
+        resource.RLIMIT_CPU: (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
     }
     
     for limit, value in limits.items():
@@ -56,7 +59,9 @@ def optimize_network():
         "net.ipv4.tcp_congestion_control": "bbr",
         "net.ipv4.tcp_fastopen": "3",
         "net.ipv4.tcp_max_syn_backlog": "4096",
-        "vm.swappiness": "1"
+        "vm.swappiness": "1",
+        "vm.overcommit_memory": "1",
+        "kernel.pid_max": "4194304"
     }
     for key, value in settings.items():
         run_command(["sysctl", "-w", f"{key}={value}"])
