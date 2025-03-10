@@ -103,11 +103,13 @@ def disable_services():
 
 def apply_all():
     setup_logging()
+    print("⚙️ Запуск оптимизации...")  # Добавлен видимый вывод
     logging.info("⚙️ Запуск оптимизации...")
     set_limits()
     optimize_network()
     clear_iptables()
     disable_services()
+    print("✅ Оптимизация завершена.")  # Добавлен видимый вывод
     logging.info("✅ Оптимизация завершена.")
 
 if __name__ == "__main__":
