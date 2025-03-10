@@ -3,6 +3,8 @@ import resource
 import subprocess
 import logging
 import speedtest
+import sys
+import importlib
 
 def setup_logging():
     """Настройка логирования."""
@@ -10,6 +12,17 @@ def setup_logging():
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
+
+def ensure_imports():
+    """Гарантированная установка необходимых модулей."""
+    required_modules = ["os", "resource", "subprocess", "logging", "speedtest"]
+    for module in required_modules:
+        try:
+            importlib.import_module(module)
+            logging.info(f"✅ Модуль {module} уже установлен")
+        except ImportError:
+            logging.warning(f"⚠️ Устанавливаю {module}...")
+            subprocess.run([sys.executable, "-m", "pip", "install", module], check=True)
 
 def run_command(command):
     """Безопасное выполнение команды."""
@@ -25,6 +38,14 @@ def run_command(command):
         logging.error(f"❌ Ошибка {command}: {e.stderr.strip()}", exc_info=True)
     except subprocess.TimeoutExpired as e:
         logging.error(f"❌ Таймаут {command}: {e}", exc_info=True)
+
+def get_current_sysctl_value(param):
+    """Получает текущее значение sysctl параметра."""
+    try:
+        result = subprocess.run(["sysctl", "-n", param], check=True, stdout=subprocess.PIPE, text=True)
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return None
 
 def set_limits():
     """Снятие системных лимитов."""
@@ -64,7 +85,11 @@ def optimize_network():
         "kernel.pid_max": "4194304"
     }
     for key, value in settings.items():
-        run_command(["sysctl", "-w", f"{key}={value}"])
+        current_value = get_current_sysctl_value(key)
+        if current_value is None or current_value != str(value):
+            run_command(["sysctl", "-w", f"{key}={value}"])
+        else:
+            logging.info(f"ℹ️ Параметр {key} уже установлен на {value}")
 
 def clear_iptables():
     """Открытие всех портов и снятие ограничений iptables."""
@@ -83,6 +108,7 @@ def disable_services():
 
 def apply_all():
     setup_logging()
+    ensure_imports()
     logging.info("⚙️ Запуск оптимизации...")
     set_limits()
     optimize_network()
