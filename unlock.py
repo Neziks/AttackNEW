@@ -12,6 +12,12 @@ def setup_logging():
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
+def check_root():
+    """Проверяет, запущен ли скрипт от root."""
+    if os.geteuid() != 0:
+        logging.error("❌ Скрипт должен быть запущен с root-правами! Используйте sudo.")
+        sys.exit(1)
+
 def install_and_import(module_name):
     """Проверяет наличие модуля и устанавливает его при необходимости."""
     if importlib.util.find_spec(module_name) is None:
@@ -49,18 +55,16 @@ def get_current_sysctl_value(param):
 
 def set_limits():
     """Снятие системных лимитов."""
-    limits = {
-        resource.RLIMIT_NOFILE: (1000000, 1000000),
-        resource.RLIMIT_NPROC: (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
-    }
-    
-    for limit, value in limits.items():
-        current = resource.getrlimit(limit)
-        if current != value:
-            resource.setrlimit(limit, value)
-            logging.info(f"✅ Лимит {limit} установлен на {value}")
-        else:
-            logging.info(f"ℹ️ Лимит {limit} уже установлен")
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (1000000, 1000000))
+        logging.info("✅ Лимит RLIMIT_NOFILE установлен на 1000000")
+    except ValueError:
+        logging.warning("⚠️ Невозможно изменить RLIMIT_NOFILE")
+    try:
+        resource.setrlimit(resource.RLIMIT_NPROC, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+        logging.info("✅ Лимит RLIMIT_NPROC установлен на бесконечность")
+    except ValueError:
+        logging.warning("⚠️ Невозможно изменить RLIMIT_NPROC")
 
 def optimize_network():
     """Оптимизация сетевых параметров и снятие ограничений."""
@@ -88,9 +92,12 @@ def optimize_network():
 
 def clear_iptables():
     """Открытие всех портов и снятие ограничений iptables."""
-    commands = [["iptables", "-F"], ["iptables", "-X"], ["iptables", "-Z"],
-                ["iptables", "-P", "INPUT", "ACCEPT"], ["iptables", "-P", "OUTPUT", "ACCEPT"],
-                ["iptables", "-P", "FORWARD", "ACCEPT"]]
+    commands = [
+        ["iptables", "-F"], ["iptables", "-X"], ["iptables", "-Z"],
+        ["iptables", "-P", "INPUT", "ACCEPT"],
+        ["iptables", "-P", "OUTPUT", "ACCEPT"],
+        ["iptables", "-P", "FORWARD", "ACCEPT"]
+    ]
     for cmd in commands:
         run_command(cmd)
 
@@ -103,13 +110,14 @@ def disable_services():
 
 def apply_all():
     setup_logging()
-    print("⚙️ Запуск оптимизации...")  # Добавлен видимый вывод
+    check_root()
+    print("⚙️ Запуск оптимизации...")
     logging.info("⚙️ Запуск оптимизации...")
     set_limits()
     optimize_network()
     clear_iptables()
     disable_services()
-    print("✅ Оптимизация завершена.")  # Добавлен видимый вывод
+    print("✅ Оптимизация завершена.")
     logging.info("✅ Оптимизация завершена.")
 
 if __name__ == "__main__":
