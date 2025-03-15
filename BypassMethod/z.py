@@ -55,50 +55,39 @@ def send_tcp_packets(target_ip, target_port, packet_size=1024, duration=10):
 
 # Протоколы Layer 4
 def tcp_syn_flood(target_ip, target_port, duration):
-    # Логика для атаки TCP-SYN
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака TCP-SYN на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 def tcp_ack_flood(target_ip, target_port, duration):
-    # Логика для атаки TCP-ACK
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака TCP-ACK на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 def udp_pps_flood(target_ip, target_port, duration):
-    # Логика для атаки UDP-PPS
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака UDP-PPS на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 def udp_china_flood(target_ip, target_port, duration):
-    # Логика для атаки UDPCHINA
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака UDP-CHINA на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 # Протоколы Layer 7
 def mc_cps_flood(target_ip, target_port, duration):
-    # Логика для атаки MC-CPS
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака MC-CPS на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 def mc_join_flood(target_ip, target_port, duration):
-    # Логика для атаки MC-JOIN
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака MC-JOIN на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 def mc_ping_flood(target_ip, target_port, duration):
-    # Логика для атаки MC-PING
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака MC-PING на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 def mc_handshake_flood(target_ip, target_port, duration):
-    # Логика для атаки MC-HANDSHAKE
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака MC-HANDSHAKE на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 def mc_tcpbypass_flood(target_ip, target_port, duration):
-    # Логика для атаки MC-TCPBYPASS
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака MC-TCPBYPASS на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 # Протоколы Web (HTTP Layer 7)
 def http_out_flood(target_ip, target_port, duration):
-    # Логика для атаки HTTP-OUT
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака HTTP-OUT на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 def http_misc_flood(target_ip, target_port, duration):
-    # Логика для атаки HTTP-MISC
-    pass
+    print(f"{Fore.YELLOW}🚨 Запущена атака HTTP-MISC на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
 
 def run_all_protocols(target_ip, target_port, duration, workers):
     """Метод ALL - запускает все протоколы по очереди."""
@@ -138,7 +127,7 @@ def run_attack(target_ip, target_port, protocol, duration, workers):
         elif protocol == "TCP":
             process = multiprocessing.Process(target=send_tcp_packets, args=(target_ip, target_port, 1024, duration))
         else:
-            print(f"{Fore.RED}🚨 Ошибка: поддерживаемые протоколы - TCP, UDP{Style.RESET_ALL}")
+            print(f"{Fore.RED}🚨 Ошибка: поддерживаемые протоколы - TCP, UDP, ALL{Style.RESET_ALL}")
             return
         
         process.start()
@@ -165,7 +154,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     banner()
     
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 4:
         print(f"{Fore.RED}⚠️ Использование: python z.py ip:port protocol time{Style.RESET_ALL}")
         sys.exit(1)
     
