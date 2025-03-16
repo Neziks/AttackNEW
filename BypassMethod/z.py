@@ -189,7 +189,7 @@ if __name__ == "__main__":
     banner()
     
     if len(sys.argv) != 4:
-        print(f"{Fore.RED}⚠️ Использование: python z1.py ip:port protocol time{Style.RESET_ALL}")
+        print(f"{Fore.RED}⚠️ Использование: python z.py ip:port protocol time{Style.RESET_ALL}")
         sys.exit(1)
     
     target = sys.argv[1]
