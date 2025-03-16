@@ -18,17 +18,30 @@ def check_root():
         logging.error("❌ Скрипт должен быть запущен с root-правами! Используйте sudo.")
         sys.exit(1)
 
-def install_and_import(module_name):
+def install_and_import(module_name, use_pip=True):
     """Проверяет наличие модуля и устанавливает его при необходимости."""
     if importlib.util.find_spec(module_name) is None:
         logging.warning(f"⚠️ Устанавливаю {module_name}...")
-        subprocess.run([sys.executable, "-m", "pip", "install", module_name], check=True)
+        try:
+            if use_pip:
+                subprocess.run([sys.executable, "-m", "pip", "install", module_name], check=True)
+            else:
+                subprocess.run(["apt-get", "install", "-y", module_name], check=True)
+            logging.info(f"✅ Модуль {module_name} успешно установлен")
+        except subprocess.CalledProcessError as e:
+            logging.error(f"❌ Ошибка установки {module_name}: {e.stderr.strip() if e.stderr else e}", exc_info=True)
+            sys.exit(1)
     else:
         logging.info(f"✅ Модуль {module_name} уже установлен")
 
 # Проверяем и устанавливаем модули
-install_and_import("speedtest")
+install_and_import("speedtest-cli")
 import speedtest
+
+# Устанавливаем дополнительные пакеты: btop, nload, colorama
+install_and_import("colorama")
+install_and_import("btop", use_pip=False)  # btop можно установить через apt
+install_and_import("nload", use_pip=False)  # nload тоже через apt
 
 def run_command(command):
     """Безопасное выполнение команды."""
@@ -41,7 +54,7 @@ def run_command(command):
         if result.stderr.strip():
             logging.warning(f"⚠️ {command}: {result.stderr.strip()}")
     except subprocess.CalledProcessError as e:
-        logging.error(f"❌ Ошибка {command}: {e.stderr.strip()}", exc_info=True)
+        logging.error(f"❌ Ошибка {command}: {e.stderr.strip() if e.stderr else e}", exc_info=True)
     except subprocess.TimeoutExpired as e:
         logging.error(f"❌ Таймаут {command}: {e}", exc_info=True)
 
